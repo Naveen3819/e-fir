@@ -58,21 +58,37 @@ async function initDatabase() {
   if (!pgPool) {
     // Fallback to PGlite (Real PostgreSQL engine in Node)
     const { PGlite } = require('@electric-sql/pglite');
-    try {
-      const dataDir = path.resolve(__dirname, '../../database/pgdata');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
+    const isCloud = Boolean(process.env.RENDER || process.env.VERCEL || process.env.NODE_ENV === 'production');
+
+    if (isCloud) {
+      try {
+        pgliteInstance = new PGlite('memory://');
+        if (pgliteInstance.waitReady) await pgliteInstance.waitReady;
+        isPgLite = true;
+        console.log(' Cloud environment detected: In-memory PGlite engine initialized.');
+      } catch (err) {
+        console.warn(' Cloud memory PGlite failed, attempting disk fallback:', err.message);
       }
-      pgliteInstance = new PGlite(dataDir);
-      isPgLite = true;
-      console.log(` Persistent PostgreSQL (PGlite) engine initialized at: ${dataDir}`);
-    } catch (fsErr) {
-      console.warn(' Persistent directory init failed, initializing in-memory PGlite:', fsErr.message);
-      pgliteInstance = new PGlite('memory://');
-      isPgLite = true;
-      console.log(' In-memory PostgreSQL (PGlite) engine initialized successfully.');
     }
 
+    if (!pgliteInstance) {
+      try {
+        const dataDir = path.resolve(__dirname, '../../database/pgdata');
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
+        pgliteInstance = new PGlite(dataDir);
+        if (pgliteInstance.waitReady) await pgliteInstance.waitReady;
+        isPgLite = true;
+        console.log(` Persistent PostgreSQL (PGlite) engine initialized at: ${dataDir}`);
+      } catch (fsErr) {
+        console.warn(' Persistent directory init failed, initializing in-memory PGlite:', fsErr.message);
+        pgliteInstance = new PGlite('memory://');
+        if (pgliteInstance.waitReady) await pgliteInstance.waitReady;
+        isPgLite = true;
+        console.log(' In-memory PostgreSQL (PGlite) engine initialized successfully.');
+      }
+    }
   }
 
   // Ensure tables and seed exist
@@ -81,12 +97,17 @@ async function initDatabase() {
 
 async function query(text, params = []) {
   if (isPgLite && pgliteInstance) {
-    const result = await pgliteInstance.query(text, params);
-    return {
-      rows: result.rows || [],
-      rowCount: result.rows ? result.rows.length : result.affectedRows || 0,
-      fields: result.fields,
-    };
+    try {
+      const result = await pgliteInstance.query(text, params);
+      return {
+        rows: result.rows || [],
+        rowCount: result.rows ? result.rows.length : result.affectedRows || 0,
+        fields: result.fields,
+      };
+    } catch (err) {
+      console.error(' PGlite query error:', err.message);
+      throw err;
+    }
   } else if (pgPool) {
     const result = await pgPool.query(text, params);
     return result;
@@ -94,6 +115,7 @@ async function query(text, params = []) {
     throw new Error('Database is not initialized yet. Call initDatabase() first.');
   }
 }
+
 
 async function runMigrationsAndSeed() {
   try {
