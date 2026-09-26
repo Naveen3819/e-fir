@@ -13,6 +13,36 @@ const hasExternalPg = Boolean(
   (process.env.PGUSER && process.env.PGDATABASE)
 );
 
+function resolveSqlFile(filename) {
+  const candidates = [
+    path.resolve(__dirname, '../../database', filename),
+    path.resolve(__dirname, '../database', filename),
+    path.resolve(process.cwd(), 'database', filename),
+    path.resolve(process.cwd(), '../database', filename),
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error(`SQL file '${filename}' could not be located.`);
+}
+
+function getDatabaseDataDir() {
+  const candidates = [
+    path.resolve(__dirname, '../../database/pgdata'),
+    path.resolve(__dirname, '../database/pgdata'),
+    path.resolve(process.cwd(), 'database/pgdata'),
+  ];
+  for (const candidate of candidates) {
+    const parent = path.dirname(candidate);
+    if (fs.existsSync(parent)) {
+      return candidate;
+    }
+  }
+  return path.resolve(process.cwd(), 'database/pgdata');
+}
+
 async function initDatabase() {
   // Connect to MongoDB Atlas if MONGODB_URI is specified
   if (process.env.MONGODB_URI) {
@@ -73,7 +103,7 @@ async function initDatabase() {
 
     if (!pgliteInstance) {
       try {
-        const dataDir = path.resolve(__dirname, '../../database/pgdata');
+        const dataDir = getDatabaseDataDir();
         if (!fs.existsSync(dataDir)) {
           fs.mkdirSync(dataDir, { recursive: true });
         }
@@ -116,7 +146,6 @@ async function query(text, params = []) {
   }
 }
 
-
 async function runMigrationsAndSeed() {
   try {
     // Check if 'users' table already exists
@@ -127,10 +156,8 @@ async function runMigrationsAndSeed() {
     const exists = checkTable.rows[0]?.exists;
     if (!exists) {
       console.log(' Running database migrations (schema.sql)...');
-      const schemaSql = fs.readFileSync(
-        path.resolve(__dirname, '../../database/schema.sql'),
-        'utf8'
-      );
+      const schemaPath = resolveSqlFile('schema.sql');
+      const schemaSql = fs.readFileSync(schemaPath, 'utf8');
       if (isPgLite) {
         await pgliteInstance.exec(schemaSql);
       } else {
@@ -139,10 +166,8 @@ async function runMigrationsAndSeed() {
       console.log(' Schema created successfully.');
 
       console.log(' Seeding default demo data (seed.sql)...');
-      const seedSql = fs.readFileSync(
-        path.resolve(__dirname, '../../database/seed.sql'),
-        'utf8'
-      );
+      const seedPath = resolveSqlFile('seed.sql');
+      const seedSql = fs.readFileSync(seedPath, 'utf8');
       if (isPgLite) {
         await pgliteInstance.exec(seedSql);
       } else {
@@ -159,6 +184,7 @@ async function runMigrationsAndSeed() {
     console.error(' Error initializing schema/seed:', error);
   }
 }
+
 
 async function syncSequences() {
   try {
