@@ -58,13 +58,20 @@ async function initDatabase() {
   if (!pgPool) {
     // Fallback to PGlite (Real PostgreSQL engine in Node)
     const { PGlite } = require('@electric-sql/pglite');
-    const dataDir = path.resolve(__dirname, '../../database/pgdata');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+    try {
+      const dataDir = path.resolve(__dirname, '../../database/pgdata');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      pgliteInstance = new PGlite(dataDir);
+      isPgLite = true;
+      console.log(` Persistent PostgreSQL (PGlite) engine initialized at: ${dataDir}`);
+    } catch (fsErr) {
+      console.warn(' Persistent directory init failed, initializing in-memory PGlite:', fsErr.message);
+      pgliteInstance = new PGlite();
+      isPgLite = true;
+      console.log(' In-memory PostgreSQL (PGlite) engine initialized successfully.');
     }
-    pgliteInstance = new PGlite(dataDir);
-    isPgLite = true;
-    console.log(` Persistent PostgreSQL (PGlite) engine initialized at: ${dataDir}`);
   }
 
   // Ensure tables and seed exist
