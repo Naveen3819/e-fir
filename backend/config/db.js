@@ -159,10 +159,16 @@ async function query(text, params = []) {
     }
   } else if (isPgMem && pgMemInstance) {
     try {
-      const result = pgMemInstance.many(text, params);
+      let rows = [];
+      const trimmedText = text.trim().toUpperCase();
+      if (trimmedText.startsWith('SELECT') || trimmedText.includes('RETURNING')) {
+        rows = pgMemInstance.many(text, params) || [];
+      } else {
+        pgMemInstance.none(text, params);
+      }
       return {
-        rows: result || [],
-        rowCount: result ? result.length : 0,
+        rows,
+        rowCount: rows.length,
       };
     } catch (err) {
       console.error(' pg-mem query error:', err.message);
@@ -203,7 +209,8 @@ async function runMigrationsAndSeed() {
       if (isPgLite) {
         await pgliteInstance.exec(seedSql);
       } else if (isPgMem && pgMemInstance) {
-        pgMemInstance.none(seedSql);
+        const pgMemSeed = seedSql.split(/SELECT\s+setval/i)[0];
+        pgMemInstance.none(pgMemSeed);
       } else {
         await pgPool.query(seedSql);
       }
@@ -220,6 +227,7 @@ async function runMigrationsAndSeed() {
 }
 
 async function syncSequences() {
+  if (isPgMem) return; // Sequence setval not needed in pg-mem
   try {
     const syncSql = `
       SELECT setval('users_id_seq', (SELECT COALESCE(MAX(id), 1) FROM users));
@@ -236,8 +244,6 @@ async function syncSequences() {
     `;
     if (isPgLite) {
       await pgliteInstance.exec(syncSql);
-    } else if (isPgMem && pgMemInstance) {
-      pgMemInstance.none(syncSql);
     } else if (pgPool) {
       await pgPool.query(syncSql);
     }
@@ -245,6 +251,7 @@ async function syncSequences() {
     console.warn(' Sequence synchronization warning:', e.message);
   }
 }
+
 
 
 module.exports = {
