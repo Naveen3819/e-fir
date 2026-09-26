@@ -100,7 +100,8 @@ app.get('/api/health', (req, res) => {
     status: 'healthy',
     system: 'E-FIR Management System API',
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
+    version: '1.0.2',
+    deployed: true,
   });
 });
 
