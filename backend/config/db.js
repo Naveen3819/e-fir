@@ -68,10 +68,11 @@ async function initDatabase() {
       console.log(` Persistent PostgreSQL (PGlite) engine initialized at: ${dataDir}`);
     } catch (fsErr) {
       console.warn(' Persistent directory init failed, initializing in-memory PGlite:', fsErr.message);
-      pgliteInstance = new PGlite();
+      pgliteInstance = new PGlite('memory://');
       isPgLite = true;
       console.log(' In-memory PostgreSQL (PGlite) engine initialized successfully.');
     }
+
   }
 
   // Ensure tables and seed exist
