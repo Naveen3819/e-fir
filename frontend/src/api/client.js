@@ -1,8 +1,19 @@
 import axios from 'axios';
 
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, '');
+  }
+  // In production deployments (e.g. Vercel), fallback to deployed Render backend URL
+  if (import.meta.env.PROD && typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
+    return 'https://e-fir-9tpa.onrender.com/api';
+  }
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: '/api',
-  timeout: 30000,
+  baseURL: getBaseURL(),
+  timeout: 45000,
 });
 
 // Request interceptor to attach JWT token

@@ -85,7 +85,8 @@ export default function InvestigationDetail() {
 
   const handleDownloadDoc = (updateId) => {
     const token = localStorage.getItem('efir_token');
-    const url = `/api/evidence/documents/${updateId}/download`;
+    const baseUrl = api.defaults.baseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/evidence/documents/${updateId}/download`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
         if (!res.ok) throw new Error('Download failed');

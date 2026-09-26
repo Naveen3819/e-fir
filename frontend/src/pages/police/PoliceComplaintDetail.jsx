@@ -84,7 +84,8 @@ export default function PoliceComplaintDetail() {
   // Secure evidence download
   const handleDownloadEvidence = (evidenceId) => {
     const token = localStorage.getItem('efir_token');
-    const url = `/api/evidence/${evidenceId}/download`;
+    const baseUrl = api.defaults.baseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/evidence/${evidenceId}/download`;
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
         if (!res.ok) throw new Error('Download failed');

@@ -188,7 +188,8 @@ async function runTests() {
 async function main() {
   const expressServer = await startServer();
   const address = expressServer.address();
-  baseUrl = `http://localhost:${address.port}`;
+  const port = (address && typeof address === 'object') ? address.port : 5000;
+  baseUrl = `http://localhost:${port}`;
 
   const allPassed = await runTests();
 

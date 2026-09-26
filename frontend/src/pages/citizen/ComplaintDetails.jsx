@@ -59,7 +59,8 @@ export default function ComplaintDetails() {
   const handleDownloadEvidence = (evidenceId) => {
     // Open secure evidence streaming route with auth token
     const token = localStorage.getItem('efir_token');
-    const url = `/api/evidence/${evidenceId}/download`;
+    const baseUrl = api.defaults.baseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/evidence/${evidenceId}/download`;
     // Create an invisible link to trigger download with auth
     fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
