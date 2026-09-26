@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const mongoose = require('mongoose');
 
 let pgliteInstance = null;
 let pgPool = null;
@@ -13,6 +14,18 @@ const hasExternalPg = Boolean(
 );
 
 async function initDatabase() {
+  // Connect to MongoDB Atlas if MONGODB_URI is specified
+  if (process.env.MONGODB_URI) {
+    try {
+      await mongoose.connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000,
+      });
+      console.log(' Connected to MongoDB Atlas cluster successfully.');
+    } catch (mongoErr) {
+      console.warn(' MongoDB Atlas connection warning:', mongoErr.message);
+    }
+  }
+
   if (hasExternalPg) {
     try {
       const config = process.env.DATABASE_URL
