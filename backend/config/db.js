@@ -101,11 +101,17 @@ function registerPgMemFunctions(db) {
 }
 
 async function initDatabase() {
-  // Connect to MongoDB Atlas only if MONGODB_URI is specified (lazy-load to conserve memory)
-  if (process.env.MONGODB_URI) {
+  // Connect to MongoDB Atlas if MONGODB_URI or credentials are provided
+  let mongoUri = process.env.MONGODB_URI;
+  if (!mongoUri && process.env.MONGODB_USERNAME && process.env.MONGODB_PASSWORD) {
+    mongoUri = `mongodb+srv://${process.env.MONGODB_USERNAME}:${encodeURIComponent(process.env.MONGODB_PASSWORD)}@cluster0.y649bmt.mongodb.net/efir_db?retryWrites=true&w=majority&appName=Cluster0`;
+  }
+
+  if (mongoUri) {
     try {
       const mongoose = require('mongoose');
-      await mongoose.connect(process.env.MONGODB_URI, {
+      await mongoose.connect(mongoUri, {
+        dbName: process.env.MONGODB_DB_NAME || 'efir_db',
         serverSelectionTimeoutMS: 5000,
       });
       console.log(' Connected to MongoDB Atlas cluster successfully.');

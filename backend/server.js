@@ -1,10 +1,11 @@
+const path = require('path');
 require('dotenv').config();
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-const path = require('path');
 
 const { initDatabase } = require('./config/db');
 const { errorHandler } = require('./middleware/errorHandler');
