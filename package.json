@@ -4,7 +4,7 @@
   "description": "E-FIR Management System - Online Citizen-Police Platform & FIR Portal",
   "main": "backend/server.js",
   "scripts": {
-    "start": "node backend/server.js",
+    "start": "node --max-old-space-size=384 backend/server.js",
     "server": "node backend/server.js",
     "frontend": "npm --prefix frontend run dev",
     "dev": "node backend/server.js",
